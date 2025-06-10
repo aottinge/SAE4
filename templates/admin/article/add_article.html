@@ -1,0 +1,62 @@
+{% extends 'admin/layout_admin.html' %}
+
+{% block title %}
+    <title>Ajouter un vélo</title>
+{% endblock %}
+
+{% block body %}
+    <h2>Ajouter un vélo</h2>
+    <div class="row mt-5">
+        <img class="card-img-top rounded mx-4 d-block"
+             style="width:200px; height:200px; border: 1px solid black; padding: 5px;"
+             id="img_output"
+             src="{{ url_for('static', filename = 'images/no_photo.jpeg') }}"
+             alt="">
+
+        <div class="w-25">
+            <form class="w-190" method="post" action="/admin/article/add" enctype="multipart/form-data">
+                <label for="nom">Nom :
+                    <input name="nom" type="text" class="form-control" required>
+                </label>
+
+                <label for="prix">Prix (€) :
+                    <input name="prix" type="number" min="0.0" step="0.01" class="form-control" required>
+                </label>
+
+                <label for="image"> Image :
+                    <input name="image" type="file" onchange="loadFile(event)" class="form-control">
+                </label>
+
+                <label for="type_velo_id">Type de vélo :
+                    <select name="type_velo_id" class="form-select" required>
+                        <option value="">Sélectionner un type de vélo</option>
+                        {% for type in types_velo %}
+                            <option value="{{ type.id_type_velo }}">{{ type.libelle_type_velo }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label for="taille_id">Taille :
+                    <select name="taille_id" class="form-select" required>
+                        <option value="">Sélectionner une taille</option>
+                        {% for taille in tailles %}
+                            <option value="{{ taille.id_taille }}">{{ taille.libelle_taille }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label for="stock">Stock :
+                    <input name="stock" type="number" min="0" class="form-control" required>
+                </label>
+
+                <label for="submit">
+                    <input name="submit" type="submit" value="Ajouter" class="btn btn-primary mt-2">
+                </label>
+            </form>
+
+            <a href="/admin/article/show">
+                <button class="btn btn-secondary mt-2">Annuler</button>
+            </a>
+        </div>
+    </div>
+{% endblock %}

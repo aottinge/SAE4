@@ -1,0 +1,289 @@
+{% extends 'admin/layout_admin.html' %}
+
+{% block javascripts %}
+    {{ super() }}
+{% endblock %}
+
+{% block javascripts_head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+{% endblock %}
+
+{% block title %}
+    <title>Visualisation des listes d'envies</title>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <h2 class="mb-4">Statistiques des listes d'envies</h2>
+
+    <!-- Tableau des statistiques -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Statistiques par catégorie</h3>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Catégorie</th>
+                        <th>Articles dans les wishlists</th>
+                        <th>Consultations (30 derniers jours)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in wishlist_par_categorie %}
+                        <tr>
+                            <td>{{ item.libelle }}</td>
+                            <td>{{ item.nb_articles }}</td>
+                            <td>
+                                {% for hist in historique_par_categorie %}
+                                    {% if hist.libelle == item.libelle %}
+                                        {{ hist.nb_articles }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row">
+        <!-- Graphique des wishlists -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Articles dans les wishlists par catégorie</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="wishlistChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique de l'historique -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Consultations par catégorie (30 derniers jours)</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="historiqueChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sélecteur de catégorie -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Sélectionner une catégorie pour voir les détails</h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <form action="/admin/dataviz/etat1" method="get">
+                        <div class="input-group">
+                            <select name="categorie" class="form-control">
+                                <option value="">-- Sélectionner une catégorie --</option>
+                                {% for item in wishlist_par_categorie %}
+                                    <option value="{{ item.id_type_velo }}" {% if id_categorie and id_categorie == item.id_type_velo %}selected{% endif %}>
+                                        {{ item.libelle }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary">Afficher</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <a href="/admin/dataviz/etat1" class="btn btn-secondary">Réinitialiser</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Détails par catégorie -->
+    {% if id_categorie and categorie %}
+    <div id="detailsCategorie">
+        <div class="row">
+            <!-- Tableau des articles de la catégorie -->
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Détails des articles de la catégorie : {{ categorie.libelle_type_velo }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="tableArticles">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Article</th>
+                                    <th>Dans les wishlists</th>
+                                    <th>Consultations (30 derniers jours)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for article in articles_wishlist %}
+                                    <tr>
+                                        <td>{{ article.nom_velo }}</td>
+                                        <td>{{ article.nb_wishlist }}</td>
+                                        <td>
+                                            {% for hist in articles_historique %}
+                                                {% if hist.id_velo == article.id_velo %}
+                                                    {{ hist.nb_consultations }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphiques détaillés -->
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Articles dans les wishlists</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="detailWishlistChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Consultations des articles</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="detailHistoriqueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique des wishlists
+    var ctx1 = document.getElementById('wishlistChart').getContext('2d');
+    var wishlistChart = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: {{ labels | safe }},
+            datasets: [{
+                label: 'Articles dans les wishlists',
+                data: {{ values | safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        min: 0
+                    }
+                }]
+            }
+        }
+    });
+
+    // Graphique de l'historique
+    var ctx2 = document.getElementById('historiqueChart').getContext('2d');
+    var historiqueChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_historique | safe }},
+            datasets: [{
+                label: 'Consultations (30 derniers jours)',
+                data: {{ values_historique | safe }},
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        min: 0
+                    }
+                }]
+            }
+        }
+    });
+
+    {% if id_categorie and categorie %}
+    // Graphique des wishlists détaillé
+    var ctx3 = document.getElementById('detailWishlistChart').getContext('2d');
+    var detailWishlistChart = new Chart(ctx3, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_articles | safe }},
+            datasets: [{
+                label: 'Articles dans les wishlists',
+                data: {{ values_wishlist | safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        min: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Graphique de l'historique détaillé
+    var ctx4 = document.getElementById('detailHistoriqueChart').getContext('2d');
+    var detailHistoriqueChart = new Chart(ctx4, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_articles | safe }},
+            datasets: [{
+                label: 'Consultations (30 derniers jours)',
+                data: {{ values_historique_detail | safe }},
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        min: 0
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

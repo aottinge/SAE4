@@ -1,0 +1,99 @@
+{#
+articles (tableau de dictionnaires)
+* tableau de "article"
+    * id_article, nom, type_article_id, prix
+    * option :
+        * stock ,
+        * nb_avis ,
+        * nb_declinaisons
+#}
+{% extends 'client/layout_client.html' %}
+
+{% block title %}
+    <title>Liste d'envies et historique</title>
+{% endblock %}
+
+{% block body %}
+<h3>Votre liste d'envies</h3>
+<br><br>
+
+<table class="table">
+    <thead class="thead-dark">
+        <tr>
+            <th>Nom</th><th>Prix</th><th>Catégorie</th><th>Image</th><th>Date d'ajout</th><th>Opérations</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% if liste_envies | length >= 1 %}
+        {% for velo in liste_envies %}
+           <tr>
+                  <td><a href="/client/article/details/{{ velo.id_velo }}">{{ velo.nom_velo }}</a></td>
+                  <td>{{ "{:,.2f} €".format(velo.prix_velo) }}</td>
+                  <td>{{ velo.libelle_type_velo }}</td>
+                  <td>
+                        {%  if velo.image is not none %}
+                            <img style="width:40px;height:40px"  src="/static/images/images/{{ velo.image }}"  alt="image de {{ velo.nom_velo }}" >
+                        {% else %}
+                            <img style="width:40px;height:40px"   src="/static/images/images/no_photo.jpeg"  alt="pas d image" >
+                        {% endif %}
+                  </td>
+                  <td>{{ velo.date_ajout.strftime('%d/%m/%Y %H:%M') }}</td>
+                  <td>
+                      <div class="d-flex flex-wrap gap-2">
+                          <a class="btn btn-outline-danger" href="/client/envie/delete?id_velo={{ velo.id_velo }}">Supprimer</a>
+                          <div class="btn-group">
+                              <a class="btn btn-outline-secondary" href="/client/envies/up?id_article={{ velo.id_velo }}">⬆️</a>
+                              <a class="btn btn-outline-secondary" href="/client/envies/down?id_article={{ velo.id_velo }}">⬇️</a>
+                              <a class="btn btn-outline-secondary" href="/client/envies/first?id_article={{ velo.id_velo }}">⏫</a>
+                              <a class="btn btn-outline-secondary" href="/client/envies/last?id_article={{ velo.id_velo }}">⏬</a>
+                          </div>
+                      </div>
+                  </td>
+           </tr>
+        {% endfor %}
+    {% else %}
+            <tr>
+                  <td colspan="5">
+                      Aucun vélo dans votre liste d'envies
+                  </td>
+           </tr>
+    {% endif %}
+    </tbody>
+</table>
+    <strong style="color: red">{{ nb_envies }} vélo(s)</strong> <span style="color: red">dans votre liste d'envies</span>
+
+    {% if id_article_selectionne and article_selectionne %}
+        <br>
+        {% if stats_wishlist > 0 %}
+            <p style="color: green; margin-bottom: 5px;">{{ stats_wishlist }} article(s) de nom {{ article_selectionne.nom_velo }} dans la WishList des autres</p>
+        {% else %}
+            <p style="color: green; margin-bottom: 5px;">Vous êtes le seul à avoir cet article dans votre liste d'envies</p>
+        {% endif %}
+        
+        <p style="color: blue;">il y a {{ stats_categorie }} article(s) dans la même catégorie : "{{ article_selectionne.libelle_type_velo }}" que ce produit dans votre wishlist</p>
+    {% endif %}
+
+    <hr>
+    <h3>Historique de vos consultations</h3>
+    <div class="row">
+                {% for velo in historique %}
+                        <div class="card col-2 mt-2 p-1">
+                            <div class="card-body border-dark rounded p-1">
+                                <a href="/client/article/details/{{ velo.id_velo }}" >
+                                <h3 class="card-title">
+                                    <span style="color: #0b2e13">{{ velo.nom_velo }}</span><br>
+                                    {{ "{:,.2f} €".format(velo.prix_velo) }}
+                                </h3>
+                                     {%  if velo.image is not none %}
+                                        <img class="card-img-top rounded mx-auto d-block"  style="width:100px;height:100px"  src="/static/images/images/{{ velo.image }}"  alt="image de {{ velo.nom_velo }}" >
+                                    {% else %} 
+                                        <img class="card-img-top rounded mx-auto d-block"   style="width:100px;height:100px"   src="/static/images/images/no_photo.jpeg"  alt="pas d image" >
+                                    {% endif %}
+                                    <hr>
+                                </a>
+                            </div>
+                        </div>
+                {% endfor %}
+    </div>
+    <strong style="color: red">{{ nb_historique }} vélo(s)</strong> <span style="color: red">dans votre historique</span>
+{% endblock %}
